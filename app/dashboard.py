@@ -1,6 +1,8 @@
 import streamlit as st
 import pandas as pd
 from ia import analizar_datos, chat_con_datos
+from graficas import generar_grafica
+from chat import chat
 
 
 def mostrar_dashboard() -> None:
@@ -55,28 +57,10 @@ def mostrar_dashboard() -> None:
             st.error(f"❌ Error al procesar el archivo: {e}")
             st.warning("Asegúrate de que el archivo tenga formato correcto.")
 
-    # Si hay contexto guardado, mostramos el chat
+    # Si hay contexto guardado, mostramos el chat y el generador de gráficas
     if st.session_state.data_context:
-        st.divider()
-        st.subheader("💬 Conversación sobre tus datos")
-
-        # Mostrar historial (ignorando el prompt inicial para el sistema)
-        for message in st.session_state.messages:
-            if message["role"] != "system":
-                with st.chat_message(message["role"]):
-                    st.markdown(message["content"])
-
-        if prompt := st.chat_input("Escribe tu pregunta sobre el archivo subido..."):
-            # Mostrar la pregunta del usuario enseguida
-            with st.chat_message("user"):
-                st.markdown(prompt)
-            # Guardarla en memoria
-            st.session_state.messages.append({"role": "user", "content": prompt})
-
-            # Generar respuesta de la IA (pasando todo el historial)
-            with st.chat_message("assistant"):
-                with st.spinner("Analizando la pregunta..."):
-                    respuesta = chat_con_datos(st.session_state.messages)
-                st.markdown(respuesta)
-            
-            st.session_state.messages.append({"role": "assistant", "content": respuesta})
+        col_chat= st.container()
+        with col_chat:
+            chat()
+        with st.sidebar:
+            generar_grafica(df)
