@@ -32,3 +32,11 @@ def analizar_datos(data: str) -> str:
     )
 
     return response.choices[0].message.content
+
+
+def chat_con_datos(messages: list) -> str:
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=messages
+    )
+    return response.choices[0].message.content
