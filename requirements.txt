@@ -1,4 +1,8 @@
 streamlit==1.32.0
-openai==1.14.0
+openai==1.82.0
 python-dotenv==1.0.1
 bcrypt==4.1.2
+pandas==2.2.3
+numpy==1.26.4
+openpyxl==3.1.5
+httpx==0.28.1
