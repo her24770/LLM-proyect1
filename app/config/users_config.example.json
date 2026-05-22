@@ -1,0 +1,16 @@
+{
+  "users": [
+    {
+      "username": "demo_admin",
+      "password": "cambiar_esta_contraseña",
+      "full_name": "Usuario Administrador Demo",
+      "email": "demo@ejemplo.com"
+    },
+    {
+      "username": "demo_user",
+      "password": "cambiar_esta_contraseña",
+      "full_name": "Usuario Demo",
+      "email": "demo.user@ejemplo.com"
+    }
+  ]
+}
