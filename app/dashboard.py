@@ -49,12 +49,12 @@ def mostrar_dashboard() -> None:
                 
                 # Agregamos el primer análisis al historial
                 st.session_state.messages.append({"role": "assistant", "content": resultado})
-                st.success("✅ Análisis inicial completado")
+                st.success("Análisis inicial completado")
             else:
-                st.success("✅ Archivo cargado en memoria, listo para conversar.")
+                st.success("Archivo cargado en memoria, listo para conversar.")
 
         except Exception as e:
-            st.error(f"❌ Error al procesar el archivo: {e}")
+            st.error(f" Error al procesar el archivo: {e}")
             st.warning("Asegúrate de que el archivo tenga formato correcto.")
 
     # Si hay contexto guardado, mostramos el chat y el generador de gráficas

@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 
 def generar_grafica(df) -> None:
-    st.markdown("📊 Generador de Gráficas")
+    st.markdown("Generador de Gráficas")
     
     # Identificar los tipos de columnas
     columnas = df.columns.tolist()
@@ -10,7 +10,7 @@ def generar_grafica(df) -> None:
     columnas_categoricas = df.select_dtypes(include=['object', 'category']).columns.tolist()
 
     if not columnas_numericas:
-        st.warning("⚠️ No hay columnas numéricas para generar gráficas.")
+        st.warning("No hay columnas numéricas para generar gráficas.")
         return
     
     # Interfaz para la configuración de gráficas
@@ -27,7 +27,7 @@ def generar_grafica(df) -> None:
     tipo_grafica = st.selectbox("Tipo de Gráfica", ["Barras", "Líneas", "Área"])
     agregacion = st.radio("Agregación", ["Suma", "Promedio", "Conteo"], horizontal=True)
 
-    if st.button("🚀 Generar Visualización"):
+    if st.button("Generar Visualización"):
         try:
             # Usando pandas para agrupar los datos
             df_plot = df.copy()

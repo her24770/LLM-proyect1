@@ -3,7 +3,7 @@ from ia import chat_con_datos
 
 def chat() -> None:
     st.divider()
-    st.subheader("💬 Conversación sobre tus datos")
+    st.subheader("Conversación sobre tus datos")
 
     # Contenedor para el historial de mensajes
     # Esto asegura que los nuevos mensajes aparezcan arriba del cuadro de entrada
