@@ -8,3 +8,5 @@ services:
       - .env
     volumes:
       - ./app:/app
+      - ./app/config:/app/config
+      - ./app/data:/app/data

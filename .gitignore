@@ -33,3 +33,8 @@ Thumbs.db
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Archivos de configuración con credenciales reales
+app/config/users_config.json
+app/data/*.db
+*.db
