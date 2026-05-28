@@ -5,7 +5,7 @@ import sqlite3
 import bcrypt
 import streamlit as st
 from datetime import datetime, timedelta
-from pathlib import Path
+from landing import render_landing_page
 
 # Determinar la ruta absoluta del archivo de base de datos dentro del proyecto
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -184,6 +184,10 @@ def login() -> None:
     """
     Controla el formulario y los intentos de inicio de sesión.
     """
+    if st.query_params.get("login") != "1":
+        render_landing_page()
+        return
+
     # Inyectar estilos personalizados para centrar y dar diseño premium
     st.markdown("""
     <style>
@@ -268,6 +272,7 @@ def login() -> None:
                         st.session_state["email"] = user_info["email"]
                         st.session_state["last_activity"] = datetime.now().isoformat()
                         st.session_state["failed_attempts"] = 0
+                        st.query_params.clear()
                         st.success("Acceso concedido.")
                         st.rerun()
                     else:
@@ -284,6 +289,7 @@ def logout() -> None:
     for key in keys_to_clear:
         if key in st.session_state:
             del st.session_state[key]
+    st.query_params.clear()
 
 def protect_page() -> bool:
     """
