@@ -235,6 +235,23 @@ def login() -> None:
         color: #8A8D9F;
         margin-bottom: 24px;
     }
+
+    .login-back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin: 24px 0 0;
+        color: #8A8D9F;
+        font-family: 'Inter', sans-serif;
+        font-size: 14px;
+        font-weight: 600;
+        text-decoration: none;
+    }
+
+    .login-back-link:hover {
+        color: #FF4B4B;
+        text-decoration: none;
+    }
     </style>
     """, unsafe_allow_html=True)
     
@@ -242,6 +259,10 @@ def login() -> None:
     col1, col2, col3 = st.columns([1, 2, 1])
     
     with col2:
+        st.markdown(
+            '<a class="login-back-link" href="./" target="_self">← Volver a la landing</a>',
+            unsafe_allow_html=True,
+        )
         st.markdown('<div class="login-container">', unsafe_allow_html=True)
         st.markdown('<div class="login-title">Sistema de Gestión</div>', unsafe_allow_html=True)
         st.markdown('<div class="login-subtitle">Introduce tus credenciales para acceder</div>', unsafe_allow_html=True)

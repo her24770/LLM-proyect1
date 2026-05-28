@@ -84,6 +84,21 @@ def render_landing_page() -> None:
             white-space: nowrap;
         }}
 
+        .landing-login-link {{
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 36px;
+            padding: 0 12px;
+            border-radius: 8px;
+            color: #10151c !important;
+            background: #62d6c8;
+            font-size: 0.9rem;
+            font-weight: 800;
+            text-decoration: none;
+            white-space: nowrap;
+        }}
+
         .landing-copy {{
             max-width: 650px;
             padding: 88px 0 44px;
@@ -192,6 +207,12 @@ def render_landing_page() -> None:
                 display: none;
             }}
 
+            .landing-login-link {{
+                min-height: 34px;
+                padding: 0 10px;
+                font-size: 0.86rem;
+            }}
+
             .landing-copy {{
                 padding: 72px 0 28px;
             }}
@@ -221,7 +242,7 @@ def render_landing_page() -> None:
                     <span class="brand-mark">IA</span>
                     <span>Sistema de Gestión</span>
                 </div>
-                <div class="landing-tag">Ventas + análisis inteligente</div>
+                <a class="landing-login-link" href="./?login=1" target="_self">Iniciar sesión</a>
             </nav>
             <div class="landing-copy">
                 <div class="landing-eyebrow">Analítica de ventas con IA</div>
@@ -231,7 +252,7 @@ def render_landing_page() -> None:
                     y visualizaciones listas para decidir con más confianza.
                 </p>
                 <div class="landing-actions">
-                    <a class="landing-primary" href="?login=1">Iniciar sesión</a>
+                    <a class="landing-primary" href="./?login=1" target="_self">Iniciar sesión</a>
                 </div>
             </div>
         </section>
