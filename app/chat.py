@@ -1,11 +1,11 @@
 import streamlit as st
-from ia import chat_con_datos
-from chats import guardar_mensaje
+from ia import chat_con_datos, generar_nombre_chat
+from chats import guardar_mensaje, actualizar_chat, obtener_chat
 
 
 def chat() -> None:
     st.divider()
-    st.subheader("Conversación sobre tus datos")
+    st.subheader("Conversacion")
 
     mensaje_placeholder = st.container()
 
@@ -15,13 +15,23 @@ def chat() -> None:
                 with st.chat_message(message["role"]):
                     st.markdown(message["content"])
 
-    if prompt := st.chat_input("Escribe tu pregunta sobre el archivo subido..."):
+    if prompt := st.chat_input("Escribe tu mensaje..."):
         with mensaje_placeholder:
             with st.chat_message("user"):
                 st.markdown(prompt)
 
-        st.session_state.messages.append({"role": "user", "content": prompt})
         chat_id = st.session_state.get("active_chat_id")
+
+        # Renombrar con IA si es el primer mensaje del usuario
+        es_primer_mensaje = not any(m["role"] == "user" for m in st.session_state.messages)
+        if es_primer_mensaje and chat_id:
+            chat_data = obtener_chat(chat_id)
+            if chat_data and chat_data["name"] == "Nuevo chat":
+                nombre = generar_nombre_chat(prompt)
+                if nombre:
+                    actualizar_chat(chat_id, name=nombre)
+
+        st.session_state.messages.append({"role": "user", "content": prompt})
         if chat_id:
             guardar_mensaje(chat_id, "user", prompt)
 

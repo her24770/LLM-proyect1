@@ -18,77 +18,57 @@ _LOGIN_STYLES = """
 #MainMenu {visibility: hidden;}
 header {visibility: hidden;}
 
-.login-container {
-    display: flex;
-    justify-content: center;
+.auth-back-link {
+    display: inline-flex;
     align-items: center;
-    flex-direction: column;
-    padding: 40px;
-    border-radius: 16px;
-    background: rgba(28, 30, 38, 0.8);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5);
-    margin: 40px auto;
-    max-width: 450px;
+    gap: 6px;
+    color: #8A8D9F;
+    font-family: Inter, system-ui, sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    margin-bottom: 20px;
 }
 
-@media (prefers-color-scheme: light) {
-    .login-container {
-        background: rgba(255, 255, 255, 0.95);
-        border: 1px solid rgba(0, 0, 0, 0.1);
-        box-shadow: 0 12px 36px rgba(0, 0, 0, 0.15);
-    }
-}
+.auth-back-link:hover { color: #62d6c8; text-decoration: none; }
 
-.login-title {
-    font-family: 'Outfit', 'Inter', sans-serif;
-    font-size: 28px;
-    font-weight: 700;
+.auth-title {
+    font-family: Inter, system-ui, sans-serif;
+    font-size: 26px;
+    font-weight: 800;
     text-align: center;
-    background: linear-gradient(135deg, #FF4B4B, #FF7676);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    margin-bottom: 8px;
+    color: #fff;
+    margin-bottom: 4px;
 }
 
-.login-subtitle {
-    font-family: 'Inter', sans-serif;
+.auth-subtitle {
+    font-family: Inter, system-ui, sans-serif;
     font-size: 14px;
     text-align: center;
     color: #8A8D9F;
     margin-bottom: 24px;
 }
 
-.login-back-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    margin: 24px 0 0;
-    color: #8A8D9F;
-    font-family: 'Inter', sans-serif;
-    font-size: 14px;
-    font-weight: 600;
-    text-decoration: none;
-}
-
-.login-back-link:hover {
-    color: #FF4B4B;
-    text-decoration: none;
-}
-
-.login-switch-link {
+.auth-switch {
     display: block;
     text-align: center;
     margin-top: 16px;
     color: #8A8D9F;
-    font-family: 'Inter', sans-serif;
+    font-family: Inter, system-ui, sans-serif;
     font-size: 14px;
 }
 
-.login-switch-link a {
+.auth-switch a {
     color: #62d6c8;
     font-weight: 600;
     text-decoration: none;
+}
+
+[data-testid="stForm"] {
+    background: rgba(20, 24, 32, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    padding: 32px 28px;
 }
 </style>
 """
@@ -225,17 +205,16 @@ def check_timeout() -> None:
 
 def _render_login_form() -> None:
     st.markdown(_LOGIN_STYLES, unsafe_allow_html=True)
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        st.markdown('<a class="login-back-link" href="./" target="_self">← Volver al inicio</a>', unsafe_allow_html=True)
-        st.markdown('<div class="login-container">', unsafe_allow_html=True)
-        st.markdown('<div class="login-title">Bienvenido</div>', unsafe_allow_html=True)
-        st.markdown('<div class="login-subtitle">Ingresa tus credenciales para acceder</div>', unsafe_allow_html=True)
+    _, col, _ = st.columns([1, 2, 1])
+    with col:
+        st.markdown('<a class="auth-back-link" href="./" target="_self">← Volver al inicio</a>', unsafe_allow_html=True)
+        st.markdown('<div class="auth-title">Bienvenido</div>', unsafe_allow_html=True)
+        st.markdown('<div class="auth-subtitle">Ingresa tus credenciales para acceder</div>', unsafe_allow_html=True)
 
         with st.form("login_form", clear_on_submit=False):
             username = st.text_input("Usuario", placeholder="Nombre de usuario")
             password = st.text_input("Contraseña", type="password", placeholder="Contraseña")
-            submit = st.form_submit_button("Iniciar sesión", use_container_width=True)
+            submit = st.form_submit_button("Iniciar sesion", use_container_width=True)
 
             if submit:
                 if not username.strip() or not password.strip():
@@ -259,53 +238,50 @@ def _render_login_form() -> None:
                         st.rerun()
                     else:
                         st.session_state["failed_attempts"] = st.session_state.get("failed_attempts", 0) + 1
-                        st.error("Usuario o contraseña incorrectos.")
+                        st.error("Usuario o contrasena incorrectos.")
 
         st.markdown(
-            '<div class="login-switch-link">¿No tienes cuenta? '
-            '<a href="./?register=1" target="_self">Regístrate</a></div>',
+            '<div class="auth-switch">No tienes cuenta? '
+            '<a href="./?register=1" target="_self">Registrate</a></div>',
             unsafe_allow_html=True,
         )
-        st.markdown("</div>", unsafe_allow_html=True)
 
 
 def _render_register_form() -> None:
     st.markdown(_LOGIN_STYLES, unsafe_allow_html=True)
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        st.markdown('<a class="login-back-link" href="./" target="_self">← Volver al inicio</a>', unsafe_allow_html=True)
-        st.markdown('<div class="login-container">', unsafe_allow_html=True)
-        st.markdown('<div class="login-title">Crear cuenta</div>', unsafe_allow_html=True)
-        st.markdown('<div class="login-subtitle">Completa los datos para registrarte</div>', unsafe_allow_html=True)
+    _, col, _ = st.columns([1, 2, 1])
+    with col:
+        st.markdown('<a class="auth-back-link" href="./" target="_self">← Volver al inicio</a>', unsafe_allow_html=True)
+        st.markdown('<div class="auth-title">Crear cuenta</div>', unsafe_allow_html=True)
+        st.markdown('<div class="auth-subtitle">Completa los datos para registrarte</div>', unsafe_allow_html=True)
 
         with st.form("register_form", clear_on_submit=False):
             full_name = st.text_input("Nombre completo", placeholder="Tu nombre")
             email = st.text_input("Email", placeholder="tu@email.com")
             username = st.text_input("Usuario", placeholder="Sin espacios ni caracteres especiales")
-            password = st.text_input("Contraseña", type="password", placeholder="Mínimo 6 caracteres")
-            password2 = st.text_input("Confirmar contraseña", type="password", placeholder="Repite la contraseña")
+            password = st.text_input("Contrasena", type="password", placeholder="Minimo 6 caracteres")
+            password2 = st.text_input("Confirmar contrasena", type="password", placeholder="Repite la contrasena")
             submit = st.form_submit_button("Crear cuenta", use_container_width=True)
 
             if submit:
                 if not all([full_name, email, username, password, password2]):
                     st.error("Completa todos los campos.")
                 elif password != password2:
-                    st.error("Las contraseñas no coinciden.")
+                    st.error("Las contrasenas no coinciden.")
                 else:
                     ok, msg = registrar_usuario(username.strip(), password, full_name, email.strip())
                     if ok:
-                        st.success("Cuenta creada. Ya puedes iniciar sesión.")
+                        st.success("Cuenta creada. Ya puedes iniciar sesion.")
                         st.query_params["login"] = "1"
                         st.rerun()
                     else:
                         st.error(msg)
 
         st.markdown(
-            '<div class="login-switch-link">¿Ya tienes cuenta? '
-            '<a href="./?login=1" target="_self">Inicia sesión</a></div>',
+            '<div class="auth-switch">Ya tienes cuenta? '
+            '<a href="./?login=1" target="_self">Inicia sesion</a></div>',
             unsafe_allow_html=True,
         )
-        st.markdown("</div>", unsafe_allow_html=True)
 
 
 def login() -> None:

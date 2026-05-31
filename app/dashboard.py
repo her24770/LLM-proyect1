@@ -10,27 +10,34 @@ from chats import (
 )
 
 
+_SYSTEM_PROMPT_BASE = (
+    "Eres un asistente de negocios experto en ventas y análisis de datos. "
+    "Responde de forma concisa y útil."
+)
+
+_SYSTEM_PROMPT_CON_DATOS = (
+    "Eres un analista de negocios experto en ventas. "
+    "Analiza los siguientes datos y responde consultas del usuario de forma concisa.\n\n"
+    "Datos:\n{contexto}"
+)
+
+
+def _system_message(data_context: str = "") -> dict:
+    if data_context:
+        return {"role": "system", "content": _SYSTEM_PROMPT_CON_DATOS.format(contexto=context_to_prompt(data_context))}
+    return {"role": "system", "content": _SYSTEM_PROMPT_BASE}
+
+
 def _cargar_chat(chat_id: int) -> None:
-    """Carga un chat de la DB al session_state."""
     data = obtener_chat(chat_id)
     if not data:
         return
 
     st.session_state.active_chat_id = chat_id
     st.session_state.data_context = data["data_context"] or ""
-    st.session_state.df = None  # el DataFrame solo vive en memoria; hay que re-subir
+    st.session_state.df = None
 
-    # Reconstruir lista de mensajes: system (del contexto) + historial guardado
-    messages = []
-    if data["data_context"]:
-        messages.append({
-            "role": "system",
-            "content": (
-                "Eres un analista de negocios experto en ventas. "
-                "Analiza los siguientes datos y responde consultas del usuario de forma concisa.\n\n"
-                f"Datos:\n{context_to_prompt(data['data_context'])}"
-            ),
-        })
+    messages = [_system_message(data["data_context"] or "")]
     for msg in obtener_mensajes(chat_id):
         messages.append(msg)
 
@@ -44,15 +51,12 @@ def _mostrar_sidebar_chats() -> None:
 
     with st.sidebar:
         st.markdown("---")
-        col_title, col_new = st.columns([3, 1])
-        with col_title:
-            st.markdown("**Chats**")
-        with col_new:
-            if st.button("+", help="Nuevo chat", use_container_width=True):
-                new_id = crear_chat(user_id)
-                if new_id:
-                    _cargar_chat(new_id)
-                    st.rerun()
+        st.markdown("**Chats**")
+        if st.button("+ Nuevo chat", use_container_width=True):
+            new_id = crear_chat(user_id)
+            if new_id:
+                _cargar_chat(new_id)
+                st.rerun()
 
         chats = obtener_chats(user_id)
         active_id = st.session_state.get("active_chat_id")
@@ -94,64 +98,58 @@ def mostrar_dashboard() -> None:
         st.info("Crea un nuevo chat desde la barra lateral para comenzar.")
         return
 
-    uploaded_file = st.file_uploader(
-        "Sube tu archivo de ventas (CSV o Excel)",
-        type=["csv", "xlsx"],
-        key=f"uploader_{active_chat_id}",
-    )
+    # Inicializar mensajes si el chat está vacío (recién creado)
+    if not st.session_state.messages:
+        st.session_state.messages = [_system_message()]
 
-    if uploaded_file:
-        try:
-            df = pd.read_csv(uploaded_file) if uploaded_file.name.endswith(".csv") else pd.read_excel(uploaded_file)
-            st.subheader("Vista previa de los datos")
-            st.dataframe(df.head())
-            st.session_state.df = df
+    with st.expander("Subir archivo de ventas (opcional)", expanded=not st.session_state.data_context):
+        uploaded_file = st.file_uploader(
+            "CSV o Excel",
+            type=["csv", "xlsx"],
+            key=f"uploader_{active_chat_id}",
+            label_visibility="collapsed",
+        )
 
-            new_context = build_context(df, uploaded_file.name)
+        if uploaded_file:
+            try:
+                df = pd.read_csv(uploaded_file) if uploaded_file.name.endswith(".csv") else pd.read_excel(uploaded_file)
+                st.subheader("Vista previa")
+                st.dataframe(df.head())
+                st.session_state.df = df
 
-            if st.session_state.data_context != new_context:
-                st.session_state.data_context = new_context
-                actualizar_chat(active_chat_id, data_context=new_context, file_name=uploaded_file.name)
+                new_context = build_context(df, uploaded_file.name)
 
-                # Auto-renombrar el chat con el nombre del archivo
-                chat_data = obtener_chat(active_chat_id)
-                if chat_data and chat_data["name"] == "Nuevo chat":
-                    actualizar_chat(active_chat_id, name=uploaded_file.name.rsplit(".", 1)[0])
+                if st.session_state.data_context != new_context:
+                    st.session_state.data_context = new_context
+                    actualizar_chat(active_chat_id, data_context=new_context, file_name=uploaded_file.name)
 
-                st.session_state.messages = [
-                    {
-                        "role": "system",
-                        "content": (
-                            "Eres un analista de negocios experto en ventas. "
-                            "Analiza los siguientes datos y responde consultas del usuario de forma concisa.\n\n"
-                            f"Datos:\n{context_to_prompt(new_context)}"
-                        ),
-                    }
-                ]
+                    chat_data = obtener_chat(active_chat_id)
+                    if chat_data and chat_data["name"] == "Nuevo chat":
+                        actualizar_chat(active_chat_id, name=uploaded_file.name.rsplit(".", 1)[0])
 
-                with st.spinner("Realizando análisis inicial con IA..."):
-                    resultado = analizar_datos(context_to_prompt(new_context))
+                    # Actualizar el system message con el nuevo contexto
+                    st.session_state.messages[0] = _system_message(new_context)
 
-                st.session_state.messages.append({"role": "assistant", "content": resultado})
-                guardar_mensaje(active_chat_id, "assistant", resultado)
-                st.success("Análisis inicial completado")
-            else:
-                st.success("Archivo cargado en memoria, listo para conversar.")
+                    with st.spinner("Analizando datos..."):
+                        resultado = analizar_datos(context_to_prompt(new_context))
 
-        except Exception as e:
-            st.error(f"Error al procesar el archivo: {e}")
+                    st.session_state.messages.append({"role": "assistant", "content": resultado})
+                    guardar_mensaje(active_chat_id, "assistant", resultado)
+                    st.success("Analisis completado.")
+                else:
+                    st.success("Archivo en memoria, listo para conversar.")
 
-    elif st.session_state.data_context:
-        chat_data = obtener_chat(active_chat_id)
-        if chat_data and chat_data["file_name"]:
-            st.info(
-                f"Contexto activo: **{chat_data['file_name']}** — "
-                "puedes seguir conversando o subir un nuevo archivo."
-            )
+            except Exception as e:
+                st.error(f"Error al procesar el archivo: {e}")
 
-    if st.session_state.data_context:
-        with st.container():
-            chat()
-        if st.session_state.df is not None:
-            with st.sidebar:
-                generar_grafica(st.session_state.df)
+        elif st.session_state.data_context:
+            chat_data = obtener_chat(active_chat_id)
+            if chat_data and chat_data["file_name"]:
+                st.caption(f"Contexto activo: {chat_data['file_name']} — sube un nuevo archivo para reemplazarlo.")
+
+    with st.container():
+        chat()
+
+    if st.session_state.df is not None:
+        with st.sidebar:
+            generar_grafica(st.session_state.df)

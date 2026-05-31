@@ -40,3 +40,22 @@ def chat_con_datos(messages: list) -> str:
         messages=messages
     )
     return response.choices[0].message.content
+
+
+def generar_nombre_chat(primer_mensaje: str) -> str:
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {
+                "role": "system",
+                "content": (
+                    "Genera un título muy corto (máximo 4 palabras) para una conversación "
+                    "basándote en el primer mensaje del usuario. "
+                    "Solo responde el título, sin comillas ni puntuación."
+                ),
+            },
+            {"role": "user", "content": primer_mensaje},
+        ],
+        max_tokens=20,
+    )
+    return response.choices[0].message.content.strip()
