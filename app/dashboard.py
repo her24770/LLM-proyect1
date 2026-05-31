@@ -7,25 +7,47 @@ from chats import (
     get_user_id, build_context, context_to_prompt,
     crear_chat, obtener_chats, obtener_chat, actualizar_chat,
     eliminar_chat, guardar_mensaje, obtener_mensajes,
+    obtener_master_chat, crear_master_chat, construir_contexto_historico,
 )
 
-
-_SYSTEM_PROMPT_BASE = (
+_SYSTEM_BASE = (
     "Eres un asistente de negocios experto en ventas y análisis de datos. "
     "Responde de forma concisa y útil."
 )
 
-_SYSTEM_PROMPT_CON_DATOS = (
+_SYSTEM_CON_DATOS = (
     "Eres un analista de negocios experto en ventas. "
     "Analiza los siguientes datos y responde consultas del usuario de forma concisa.\n\n"
     "Datos:\n{contexto}"
 )
 
+_SYSTEM_MAESTRO = (
+    "Eres un analista de negocios con acceso al historial completo de análisis del usuario. "
+    "Cada sección representa un chat distinto con su archivo y estadísticas. "
+    "Puedes comparar periodos, identificar tendencias entre chats, analizar estacionalidad "
+    "y responder cualquier consulta que cruce múltiples análisis. "
+    "Cuando el usuario mencione un chat por nombre o fecha, úsalo como referencia.\n\n"
+    "Historial de análisis disponible:\n\n{historial}"
+)
+
+_SYSTEM_MAESTRO_VACIO = (
+    "Eres un analista de negocios con acceso al historial de análisis del usuario. "
+    "Aún no hay chats con datos cargados. "
+    "Indica al usuario que primero cree chats con archivos de ventas para poder hacer análisis histórico."
+)
+
 
 def _system_message(data_context: str = "") -> dict:
     if data_context:
-        return {"role": "system", "content": _SYSTEM_PROMPT_CON_DATOS.format(contexto=context_to_prompt(data_context))}
-    return {"role": "system", "content": _SYSTEM_PROMPT_BASE}
+        return {"role": "system", "content": _SYSTEM_CON_DATOS.format(contexto=context_to_prompt(data_context))}
+    return {"role": "system", "content": _SYSTEM_BASE}
+
+
+def _system_message_maestro(user_id: int) -> dict:
+    historial = construir_contexto_historico(user_id)
+    if historial:
+        return {"role": "system", "content": _SYSTEM_MAESTRO.format(historial=historial)}
+    return {"role": "system", "content": _SYSTEM_MAESTRO_VACIO}
 
 
 def _cargar_chat(chat_id: int) -> None:
@@ -34,10 +56,17 @@ def _cargar_chat(chat_id: int) -> None:
         return
 
     st.session_state.active_chat_id = chat_id
+    st.session_state.is_master = data.get("is_master", False)
     st.session_state.data_context = data["data_context"] or ""
     st.session_state.df = None
 
-    messages = [_system_message(data["data_context"] or "")]
+    if data.get("is_master"):
+        user_id = get_user_id(st.session_state.get("username"))
+        system_msg = _system_message_maestro(user_id)
+    else:
+        system_msg = _system_message(data["data_context"] or "")
+
+    messages = [system_msg]
     for msg in obtener_mensajes(chat_id):
         messages.append(msg)
 
@@ -51,6 +80,29 @@ def _mostrar_sidebar_chats() -> None:
 
     with st.sidebar:
         st.markdown("---")
+
+        # Chat maestro (único, pinneado arriba)
+        master = obtener_master_chat(user_id)
+        if not master:
+            if st.button("Crear Analisis Global", use_container_width=True):
+                mid = crear_master_chat(user_id)
+                if mid:
+                    _cargar_chat(mid)
+                    st.rerun()
+        else:
+            is_active = st.session_state.get("active_chat_id") == master["id"]
+            btn_type = "primary" if is_active else "secondary"
+            if st.button(
+                f"[Global] {master['name']}",
+                key="master_chat_btn",
+                use_container_width=True,
+                type=btn_type,
+            ):
+                if not is_active:
+                    _cargar_chat(master["id"])
+                    st.rerun()
+
+        st.markdown("---")
         st.markdown("**Chats**")
         if st.button("+ Nuevo chat", use_container_width=True):
             new_id = crear_chat(user_id)
@@ -61,44 +113,108 @@ def _mostrar_sidebar_chats() -> None:
         chats = obtener_chats(user_id)
         active_id = st.session_state.get("active_chat_id")
 
+        if "renaming_chat_id" not in st.session_state:
+            st.session_state.renaming_chat_id = None
+
         for item in chats:
             is_active = item["id"] == active_id
-            label = item["name"]
-            if item.get("file_name"):
-                label += f" · {item['file_name']}"
+            is_renaming = st.session_state.renaming_chat_id == item["id"]
 
-            col_btn, col_del = st.columns([5, 1])
-            with col_btn:
-                btn_type = "primary" if is_active else "secondary"
-                if st.button(label, key=f"chat_{item['id']}", use_container_width=True, type=btn_type):
-                    if not is_active:
-                        _cargar_chat(item["id"])
+            if is_renaming:
+                nuevo_nombre = st.text_input(
+                    "Nuevo nombre",
+                    value=item["name"],
+                    key=f"rename_input_{item['id']}",
+                    label_visibility="collapsed",
+                )
+                col_ok, col_cancel = st.columns(2)
+                with col_ok:
+                    if st.button("Guardar", key=f"rename_ok_{item['id']}", use_container_width=True):
+                        if nuevo_nombre.strip():
+                            actualizar_chat(item["id"], name=nuevo_nombre.strip())
+                        st.session_state.renaming_chat_id = None
                         st.rerun()
-            with col_del:
-                if st.button("x", key=f"del_{item['id']}", use_container_width=True):
-                    eliminar_chat(item["id"])
-                    if active_id == item["id"]:
-                        for k in ("active_chat_id", "messages", "data_context", "df"):
-                            st.session_state.pop(k, None)
-                    st.rerun()
+                with col_cancel:
+                    if st.button("Cancelar", key=f"rename_cancel_{item['id']}", use_container_width=True):
+                        st.session_state.renaming_chat_id = None
+                        st.rerun()
+            else:
+                label = item["name"]
+                if item.get("file_name"):
+                    label += f" · {item['file_name']}"
+
+                col_btn, col_rename, col_del = st.columns([4, 1, 1])
+                with col_btn:
+                    btn_type = "primary" if is_active else "secondary"
+                    if st.button(label, key=f"chat_{item['id']}", use_container_width=True, type=btn_type):
+                        if not is_active:
+                            _cargar_chat(item["id"])
+                        st.rerun()
+                with col_rename:
+                    if st.button("r", key=f"ren_{item['id']}", use_container_width=True, help="Renombrar"):
+                        st.session_state.renaming_chat_id = item["id"]
+                        st.rerun()
+                with col_del:
+                    if st.button("x", key=f"del_{item['id']}", use_container_width=True, help="Eliminar"):
+                        eliminar_chat(item["id"])
+                        if active_id == item["id"]:
+                            for k in ("active_chat_id", "messages", "data_context", "df", "is_master"):
+                                st.session_state.pop(k, None)
+                        st.rerun()
+
+
+def _mostrar_chat_maestro() -> None:
+    st.title("Analisis Global")
+    st.caption(
+        "Este chat tiene acceso al contexto estadistico de todos tus chats. "
+        "Puedes pedirle comparar periodos, analizar tendencias o cruzar datos entre archivos."
+    )
+
+    user_id = get_user_id(st.session_state.get("username"))
+    historial = construir_contexto_historico(user_id)
+
+    if not historial:
+        st.info("Aun no tienes chats con archivos cargados. Crea chats con datos de ventas para activar el analisis historico.")
+        return
+
+    # Mostrar resumen de chats disponibles
+    chats_con_datos = [c for c in obtener_chats(user_id) if c.get("file_name")]
+    if chats_con_datos:
+        with st.expander(f"{len(chats_con_datos)} analisis disponibles", expanded=False):
+            for c in chats_con_datos:
+                fecha = c.get("updated_at", "")[:10]
+                st.caption(f"- **{c['name']}** — {c.get('file_name', '?')} ({fecha})")
+
+    # Actualizar system message con el historial más reciente
+    if st.session_state.messages:
+        st.session_state.messages[0] = _system_message_maestro(user_id)
+
+    with st.container():
+        chat()
 
 
 def mostrar_dashboard() -> None:
     _mostrar_sidebar_chats()
 
-    for k, v in [("active_chat_id", None), ("messages", []), ("data_context", ""), ("df", None)]:
+    for k, v in [("active_chat_id", None), ("messages", []), ("data_context", ""), ("df", None), ("is_master", False)]:
         if k not in st.session_state:
             st.session_state[k] = v
 
     active_chat_id = st.session_state.active_chat_id
 
-    st.title("Asistente de Ventas con IA")
-
     if not active_chat_id:
-        st.info("Crea un nuevo chat desde la barra lateral para comenzar.")
+        st.title("Asistente de Ventas con IA")
+        st.info("Crea un nuevo chat o abre el Analisis Global desde la barra lateral.")
         return
 
-    # Inicializar mensajes si el chat está vacío (recién creado)
+    # Chat maestro
+    if st.session_state.get("is_master"):
+        _mostrar_chat_maestro()
+        return
+
+    # Chat regular
+    st.title("Asistente de Ventas con IA")
+
     if not st.session_state.messages:
         st.session_state.messages = [_system_message()]
 
@@ -109,6 +225,7 @@ def mostrar_dashboard() -> None:
             key=f"uploader_{active_chat_id}",
             label_visibility="collapsed",
         )
+        st.caption("Por tu seguridad no guardamos el archivo — solo estadisticas del mismo para el contexto de la IA.")
 
         if uploaded_file:
             try:
@@ -127,7 +244,6 @@ def mostrar_dashboard() -> None:
                     if chat_data and chat_data["name"] == "Nuevo chat":
                         actualizar_chat(active_chat_id, name=uploaded_file.name.rsplit(".", 1)[0])
 
-                    # Actualizar el system message con el nuevo contexto
                     st.session_state.messages[0] = _system_message(new_context)
 
                     with st.spinner("Analizando datos..."):

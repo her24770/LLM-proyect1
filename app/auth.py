@@ -118,6 +118,14 @@ def init_auth() -> None:
         """)
 
         conn.commit()
+
+        # Migración: columna is_master (segura si ya existe)
+        try:
+            cursor.execute("ALTER TABLE chats ADD COLUMN is_master BOOLEAN DEFAULT 0")
+            conn.commit()
+        except sqlite3.OperationalError:
+            pass
+
     except sqlite3.Error as e:
         st.error(f"Error al inicializar la base de datos: {e}")
         raise

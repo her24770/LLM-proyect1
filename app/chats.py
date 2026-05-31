@@ -68,10 +68,11 @@ def crear_chat(user_id: int, name: str = "Nuevo chat") -> int | None:
 
 
 def obtener_chats(user_id: int) -> list[dict]:
+    """Retorna solo los chats regulares (excluye el chat maestro)."""
     conn = _conn()
     try:
         rows = conn.execute(
-            "SELECT id, name, file_name, updated_at FROM chats WHERE user_id = ? ORDER BY updated_at DESC",
+            "SELECT id, name, file_name, updated_at FROM chats WHERE user_id = ? AND (is_master = 0 OR is_master IS NULL) ORDER BY updated_at DESC",
             (user_id,),
         ).fetchall()
         return [{"id": r[0], "name": r[1], "file_name": r[2], "updated_at": r[3]} for r in rows]
@@ -83,14 +84,61 @@ def obtener_chat(chat_id: int) -> dict | None:
     conn = _conn()
     try:
         row = conn.execute(
-            "SELECT id, user_id, name, file_name, data_context FROM chats WHERE id = ?",
+            "SELECT id, user_id, name, file_name, data_context, is_master FROM chats WHERE id = ?",
             (chat_id,),
         ).fetchone()
         if row:
-            return {"id": row[0], "user_id": row[1], "name": row[2], "file_name": row[3], "data_context": row[4]}
+            return {
+                "id": row[0], "user_id": row[1], "name": row[2],
+                "file_name": row[3], "data_context": row[4], "is_master": bool(row[5]),
+            }
         return None
     finally:
         conn.close()
+
+
+def obtener_master_chat(user_id: int) -> dict | None:
+    """Retorna el chat maestro del usuario si existe."""
+    conn = _conn()
+    try:
+        row = conn.execute(
+            "SELECT id, name FROM chats WHERE user_id = ? AND is_master = 1 LIMIT 1",
+            (user_id,),
+        ).fetchone()
+        return {"id": row[0], "name": row[1]} if row else None
+    finally:
+        conn.close()
+
+
+def crear_master_chat(user_id: int) -> int | None:
+    """Crea el chat maestro único del usuario."""
+    conn = _conn()
+    try:
+        cursor = conn.execute(
+            "INSERT INTO chats (user_id, name, is_master) VALUES (?, ?, 1)",
+            (user_id, "Analisis Global"),
+        )
+        conn.commit()
+        return cursor.lastrowid
+    except sqlite3.Error:
+        return None
+    finally:
+        conn.close()
+
+
+def construir_contexto_historico(user_id: int) -> str:
+    """Combina los contextos de todos los chats regulares con datos del usuario."""
+    chats = obtener_chats(user_id)
+    partes = []
+    for item in chats:
+        full = obtener_chat(item["id"])
+        if full and full.get("data_context"):
+            fecha = item.get("updated_at", "")[:10]  # YYYY-MM-DD
+            partes.append(
+                f"=== {item['name']} | Archivo: {item.get('file_name', '?')} | Fecha: {fecha} ===\n"
+                f"{context_to_prompt(full['data_context'])}"
+            )
+    return "\n\n".join(partes) if partes else ""
 
 
 def actualizar_chat(chat_id: int, name: str = None, data_context: str = None, file_name: str = None) -> bool:
