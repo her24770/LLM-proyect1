@@ -3,7 +3,6 @@ from pathlib import Path
 
 import streamlit as st
 
-
 ASSETS_DIR = Path(__file__).resolve().parent / "assets"
 HERO_IMAGE = ASSETS_DIR / "landing-hero.png"
 
@@ -11,7 +10,6 @@ HERO_IMAGE = ASSETS_DIR / "landing-hero.png"
 def _image_data_uri(path: Path) -> str:
     if not path.exists():
         return ""
-
     encoded = base64.b64encode(path.read_bytes()).decode("utf-8")
     return f"data:image/png;base64,{encoded}"
 
@@ -34,7 +32,7 @@ def render_landing_page() -> None:
 
         .landing-hero {{
             min-height: min(720px, calc(100vh - 48px));
-            border-radius: 0;
+            border-radius: 20px;
             overflow: hidden;
             position: relative;
             padding: clamp(22px, 4vw, 44px);
@@ -42,12 +40,11 @@ def render_landing_page() -> None:
             flex-direction: column;
             justify-content: space-between;
             background:
-                linear-gradient(90deg, rgba(9, 13, 18, 0.92) 0%, rgba(9, 13, 18, 0.78) 38%, rgba(9, 13, 18, 0.2) 72%),
-                linear-gradient(180deg, rgba(9, 13, 18, 0.1), rgba(9, 13, 18, 0.78)),
+                linear-gradient(135deg, rgba(6,10,16,0.96) 0%, rgba(6,10,16,0.82) 38%, rgba(6,10,16,0.25) 72%),
                 url("{hero_image}");
             background-size: cover;
             background-position: center right;
-            box-shadow: 0 18px 48px rgba(10, 18, 28, 0.22);
+            box-shadow: 0 24px 64px rgba(0,0,0,0.4);
         }}
 
         .landing-nav {{
@@ -55,8 +52,8 @@ def render_landing_page() -> None:
             align-items: center;
             justify-content: space-between;
             gap: 16px;
-            color: rgba(255, 255, 255, 0.9);
-            font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            color: rgba(255,255,255,0.9);
+            font-family: Inter, system-ui, sans-serif;
         }}
 
         .landing-brand {{
@@ -64,24 +61,25 @@ def render_landing_page() -> None:
             align-items: center;
             gap: 10px;
             font-size: 0.98rem;
-            font-weight: 750;
+            font-weight: 800;
         }}
 
         .brand-mark {{
-            width: 34px;
-            height: 34px;
+            width: 36px;
+            height: 36px;
             display: inline-grid;
             place-items: center;
-            border-radius: 8px;
-            background: #f15b5b;
-            color: #10151c;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #62d6c8, #3eb8ab);
+            color: #0a1018;
             font-weight: 900;
+            box-shadow: 0 4px 14px rgba(98,214,200,0.4);
         }}
 
-        .landing-tag {{
-            color: rgba(255, 255, 255, 0.78);
-            font-size: 0.85rem;
-            white-space: nowrap;
+        .landing-nav-actions {{
+            display: flex;
+            gap: 10px;
+            align-items: center;
         }}
 
         .landing-login-link {{
@@ -89,47 +87,65 @@ def render_landing_page() -> None:
             align-items: center;
             justify-content: center;
             min-height: 36px;
-            padding: 0 12px;
+            padding: 0 14px;
             border-radius: 8px;
-            color: #10151c !important;
-            background: #62d6c8;
-            font-size: 0.9rem;
+            color: rgba(255,255,255,0.85) !important;
+            border: 1px solid rgba(255,255,255,0.2);
+            background: rgba(255,255,255,0.06);
+            font-size: 0.88rem;
+            font-weight: 700;
+            text-decoration: none;
+            white-space: nowrap;
+            font-family: Inter, system-ui, sans-serif;
+        }}
+
+        .landing-register-link {{
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 36px;
+            padding: 0 14px;
+            border-radius: 8px;
+            color: #0a1018 !important;
+            background: linear-gradient(135deg, #62d6c8, #3eb8ab);
+            font-size: 0.88rem;
             font-weight: 800;
             text-decoration: none;
             white-space: nowrap;
+            font-family: Inter, system-ui, sans-serif;
+            box-shadow: 0 4px 14px rgba(98,214,200,0.35);
         }}
 
         .landing-copy {{
             max-width: 650px;
             padding: 88px 0 44px;
             color: #ffffff;
-            font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            font-family: Inter, system-ui, sans-serif;
         }}
 
         .landing-eyebrow {{
             color: #62d6c8;
-            font-size: 0.85rem;
+            font-size: 0.82rem;
             font-weight: 800;
-            letter-spacing: 0;
+            letter-spacing: .06em;
             text-transform: uppercase;
-            margin-bottom: 12px;
+            margin-bottom: 14px;
         }}
 
-        .landing-copy h1 {{
-            margin: 0;
-            font-size: 5.4rem;
+        .landing-title {{
+            font-size: clamp(2.8rem, 5.5vw, 5rem);
             line-height: 0.95;
-            letter-spacing: 0;
-            font-weight: 850;
+            font-weight: 900;
             color: #ffffff;
+            margin: 0 0 8px;
         }}
 
         .landing-copy p {{
-            margin: 24px 0 0;
-            max-width: 580px;
-            color: rgba(255, 255, 255, 0.82);
-            font-size: 1.16rem;
-            line-height: 1.62;
+            margin: 22px 0 0;
+            max-width: 560px;
+            color: rgba(255,255,255,0.75);
+            font-size: 1.1rem;
+            line-height: 1.65;
         }}
 
         .landing-actions {{
@@ -137,30 +153,32 @@ def render_landing_page() -> None:
             align-items: center;
             gap: 12px;
             flex-wrap: wrap;
-            margin-top: 30px;
+            margin-top: 32px;
         }}
 
         .landing-actions a {{
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            min-height: 44px;
-            padding: 0 18px;
-            border-radius: 8px;
+            min-height: 48px;
+            padding: 0 24px;
+            border-radius: 12px;
             text-decoration: none;
             font-weight: 800;
+            font-family: Inter, system-ui, sans-serif;
+            font-size: 0.95rem;
         }}
 
         .landing-primary {{
-            color: #10151c !important;
-            background: #62d6c8;
+            color: #0a1018 !important;
+            background: linear-gradient(135deg, #62d6c8, #3eb8ab);
+            box-shadow: 0 6px 24px rgba(98,214,200,0.4);
         }}
 
         .landing-secondary {{
             color: #ffffff !important;
-            border: 1px solid rgba(255, 255, 255, 0.26);
-            background: rgba(255, 255, 255, 0.08);
-            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.22);
+            background: rgba(255,255,255,0.06);
         }}
 
         .landing-proof {{
@@ -171,24 +189,26 @@ def render_landing_page() -> None:
         }}
 
         .proof-item {{
-            padding: 20px;
-            border: 1px solid rgba(20, 32, 42, 0.1);
-            background: rgba(255, 255, 255, 0.82);
-            border-radius: 8px;
-            box-shadow: 0 12px 28px rgba(20, 32, 42, 0.08);
+            padding: 22px;
+            border-radius: 14px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
         }}
 
         .proof-item strong {{
             display: block;
-            color: #17212b;
-            font-size: 1.02rem;
+            color: #fff;
+            font-family: Inter, system-ui, sans-serif;
+            font-size: 0.96rem;
+            font-weight: 700;
             margin-bottom: 6px;
         }}
 
         .proof-item span {{
-            color: #5d6975;
+            color: rgba(255,255,255,0.52);
+            font-family: Inter, system-ui, sans-serif;
             line-height: 1.5;
-            font-size: 0.94rem;
+            font-size: 0.9rem;
         }}
 
         @media (max-width: 760px) {{
@@ -196,43 +216,26 @@ def render_landing_page() -> None:
                 padding-left: 0.8rem;
                 padding-right: 0.8rem;
             }}
-
             .landing-hero {{
                 min-height: 680px;
                 padding: 22px;
                 background-position: center;
             }}
-
-            .landing-tag {{
-                display: none;
-            }}
-
-            .landing-login-link {{
-                min-height: 34px;
-                padding: 0 10px;
-                font-size: 0.86rem;
-            }}
-
             .landing-copy {{
                 padding: 72px 0 28px;
             }}
-
-            .landing-copy h1 {{
-                font-size: 3.1rem;
+            .landing-title {{
+                font-size: 2.6rem;
             }}
-
             .landing-copy p {{
                 font-size: 1rem;
             }}
-
             .landing-actions a {{
                 width: 100%;
             }}
-
             .landing-proof {{
                 grid-template-columns: 1fr;
             }}
-
         }}
         </style>
 
@@ -240,38 +243,41 @@ def render_landing_page() -> None:
             <nav class="landing-nav" aria-label="Principal">
                 <div class="landing-brand">
                     <span class="brand-mark">IA</span>
-                    <span>Sistema de Gestión</span>
+                    <span>SalesAI</span>
                 </div>
-                <a class="landing-login-link" href="./?login=1" target="_self">Iniciar sesión</a>
+                <div class="landing-nav-actions">
+                    <a class="landing-login-link" href="./?login=1" target="_self">Iniciar sesion</a>
+                    <a class="landing-register-link" href="./?register=1" target="_self">Registrarse</a>
+                </div>
             </nav>
             <div class="landing-copy">
-                <div class="landing-eyebrow">Analítica de ventas con IA</div>
-                <h1>Sistema de Gestión IA</h1>
+                <div class="landing-eyebrow">Analitica de ventas con IA</div>
+                <div class="landing-title">Sistema de Gestion IA</div>
                 <p>
-                    Convierte archivos de ventas en análisis claro, conversaciones con tus datos
-                    y visualizaciones listas para decidir con más confianza.
+                    Sube tu archivo CSV o Excel y obtén análisis automático,
+                    respuestas en lenguaje natural y visualizaciones listas para decidir.
                 </p>
                 <div class="landing-actions">
-                    <a class="landing-primary" href="./?login=1" target="_self">Iniciar sesión</a>
+                    <a class="landing-primary" href="./?register=1" target="_self">Empezar gratis</a>
+                    <a class="landing-secondary" href="./?login=1" target="_self">Ya tengo cuenta</a>
                 </div>
             </div>
         </section>
 
-        <section id="capabilities" class="landing-proof">
+        <section class="landing-proof">
             <div class="proof-item">
-                <strong>Análisis inmediato</strong>
-                <span>Carga CSV o Excel y recibe una primera lectura de tendencias, hallazgos y alertas.</span>
+                <strong>Analisis automatico</strong>
+                <span>Carga CSV o Excel y recibe tendencias, alertas y métricas clave en segundos.</span>
             </div>
             <div class="proof-item">
-                <strong>Chat con datos</strong>
-                <span>Consulta ventas, segmentos y métricas usando lenguaje natural.</span>
+                <strong>Chat con tus datos</strong>
+                <span>Guarda multiples conversaciones y retomalas cuando quieras.</span>
             </div>
             <div class="proof-item">
-                <strong>Gráficas dinámicas</strong>
-                <span>Genera barras, líneas y áreas desde las columnas de tu archivo.</span>
+                <strong>Graficas dinamicas</strong>
+                <span>Genera barras, lineas y areas desde las columnas de tu archivo.</span>
             </div>
         </section>
-
         """,
         unsafe_allow_html=True,
     )
