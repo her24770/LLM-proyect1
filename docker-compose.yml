@@ -2,11 +2,9 @@ services:
   app:
     build: .
     ports:
-      - "8501:8501"
+      - "127.0.0.1:8502:8501"
     restart: always
     env_file:
       - .env
     volumes:
-      - ./app:/app
-      - ./app/config:/app/config
       - ./app/data:/app/data
