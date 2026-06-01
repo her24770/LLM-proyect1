@@ -279,8 +279,13 @@ def _render_register_form() -> None:
                 else:
                     ok, msg = registrar_usuario(username.strip(), password, full_name, email.strip())
                     if ok:
-                        st.success("Cuenta creada. Ya puedes iniciar sesion.")
-                        st.query_params["login"] = "1"
+                        st.session_state["authenticated"] = True
+                        st.session_state["username"] = username.strip()
+                        st.session_state["full_name"] = full_name.strip()
+                        st.session_state["email"] = email.strip()
+                        st.session_state["last_activity"] = datetime.now().isoformat()
+                        st.session_state["failed_attempts"] = 0
+                        st.query_params.clear()
                         st.rerun()
                     else:
                         st.error(msg)
