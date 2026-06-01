@@ -4,6 +4,10 @@ import plotly.express as px
 
 
 def generar_grafica(df: pd.DataFrame) -> None:
+    st.markdown(
+        '<div id="graficas-section" style="scroll-margin-top: 5rem;"></div>',
+        unsafe_allow_html=True,
+    )
     st.markdown("---")
     st.subheader("Generador de Graficas")
 

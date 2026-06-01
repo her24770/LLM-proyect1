@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import pandas as pd
 from ia import analizar_datos
 from graficas import generar_grafica
@@ -35,6 +36,36 @@ _SYSTEM_MAESTRO_VACIO = (
     "Aún no hay chats con datos cargados. "
     "Indica al usuario que primero cree chats con archivos de ventas para poder hacer análisis histórico."
 )
+
+
+def _scroll_to_graficas_section(nonce: int) -> None:
+    components.html(
+        f"""<script>
+        // scroll-graficas-{nonce}
+        (function () {{
+            function scrollToCharts() {{
+                var doc = window.parent.document;
+                var el = doc.getElementById("graficas-section");
+                if (!el) return;
+                var header = doc.querySelector('[data-testid="stHeader"]');
+                var offset = header ? header.offsetHeight + 16 : 80;
+                var container = doc.querySelector('[data-testid="stMain"]')
+                    || doc.querySelector("section.main");
+                if (container) {{
+                    var top = el.getBoundingClientRect().top
+                        - container.getBoundingClientRect().top
+                        + container.scrollTop - offset;
+                    container.scrollTo({{ top: Math.max(0, top), behavior: "smooth" }});
+                }} else {{
+                    el.scrollIntoView({{ behavior: "smooth", block: "start" }});
+                }}
+            }}
+            scrollToCharts();
+            setTimeout(scrollToCharts, 150);
+        }})();
+        </script>""",
+        height=0,
+    )
 
 
 def _company_prefix() -> str:
@@ -275,10 +306,16 @@ def mostrar_dashboard() -> None:
                 st.caption(f"Contexto activo: {chat_data['file_name']} — sube un nuevo archivo para reemplazarlo.")
 
     if st.session_state.df is not None:
-        st.link_button("Ver Gráficas", "#generador-de-graficas")
+        if st.button("Ver Gráficas ↓", key="btn_ver_graficas"):
+            st.session_state["_scroll_graficas_nonce"] = (
+                st.session_state.get("_scroll_graficas_nonce", 0) + 1
+            )
+            st.session_state["_scroll_graficas"] = True
 
     with st.container():
         chat()
 
     if st.session_state.df is not None:
         generar_grafica(st.session_state.df)
+        if st.session_state.pop("_scroll_graficas", False):
+            _scroll_to_graficas_section(st.session_state.get("_scroll_graficas_nonce", 0))
