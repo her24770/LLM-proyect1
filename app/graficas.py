@@ -1,61 +1,60 @@
 import streamlit as st
 import pandas as pd
+import plotly.express as px
 
-def generar_grafica(df) -> None:
-    st.markdown("Generador de Gráficas")
-    
-    # Identificar los tipos de columnas
+
+def generar_grafica(df: pd.DataFrame) -> None:
+    st.markdown("---")
+    st.subheader("Generador de Graficas")
+
     columnas = df.columns.tolist()
-    columnas_numericas = df.select_dtypes(include=['number']).columns.tolist()
-    columnas_categoricas = df.select_dtypes(include=['object', 'category']).columns.tolist()
+    columnas_numericas = df.select_dtypes(include=["number"]).columns.tolist()
+    columnas_categoricas = df.select_dtypes(include=["object", "category"]).columns.tolist()
 
     if not columnas_numericas:
         st.warning("No hay columnas numéricas para generar gráficas.")
         return
-    
-    # Interfaz para la configuración de gráficas
-    col1, col2 = st.columns(2)
+
+    col1, col2, col3, col4 = st.columns(4)
     with col1:
-        # Seleccion de columna para eje x
         default_x = columnas_categoricas[0] if columnas_categoricas else columnas[0]
-        col_x = st.selectbox("Eje X (Categoría)", columnas, index=columnas.index(default_x))
-    
+        col_x = st.selectbox("Eje X", columnas, index=columnas.index(default_x), key="graf_x")
     with col2:
-        # Seleccion de columna para eje y (Solo datos numericos)
-        col_y = st.selectbox("Eje Y (Valor)", columnas_numericas)
+        col_y = st.selectbox("Eje Y", columnas_numericas, key="graf_y")
+    with col3:
+        tipo = st.selectbox("Tipo", ["Barras", "Líneas", "Área"], key="graf_tipo")
+    with col4:
+        agregacion = st.selectbox("Agregación", ["Suma", "Promedio", "Conteo"], key="graf_agr")
 
-    tipo_grafica = st.selectbox("Tipo de Gráfica", ["Barras", "Líneas", "Área"])
-    agregacion = st.radio("Agregación", ["Suma", "Promedio", "Conteo"], horizontal=True)
-
-    if st.button("Generar Visualización"):
+    if st.button("Generar Visualización", key="graf_btn"):
         try:
-            # Usando pandas para agrupar los datos
-            df_plot = df.copy()
-            
             if agregacion == "Suma":
-                df_grouped = df_plot.groupby(col_x)[col_y].sum().reset_index()
+                df_grouped = df.groupby(col_x)[col_y].sum().reset_index()
             elif agregacion == "Promedio":
-                df_grouped = df_plot.groupby(col_x)[col_y].mean().reset_index()
-            else: # Conteo
-                df_grouped = df_plot.groupby(col_x)[col_y].count().reset_index()
+                df_grouped = df.groupby(col_x)[col_y].mean().reset_index()
+            else:
+                df_grouped = df.groupby(col_x)[col_y].count().reset_index()
 
-            # Establecer X como indice para las graficas de Streamlit
-            df_grouped = df_grouped.set_index(col_x)
+            titulo = f"{agregacion} de {col_y} por {col_x}"
 
-            # Mostrar la grafica
-            st.write(f"**{agregacion} de {col_y} por {col_x}**")
-            
-            if tipo_grafica == "Barras":
-                st.bar_chart(df_grouped)
-            elif tipo_grafica == "Líneas":
-                st.line_chart(df_grouped)
-            elif tipo_grafica == "Área":
-                st.area_chart(df_grouped)
-                
-            # Mostrar la tabla
+            if tipo == "Barras":
+                fig = px.bar(df_grouped, x=col_x, y=col_y, title=titulo)
+            elif tipo == "Líneas":
+                fig = px.line(df_grouped, x=col_x, y=col_y, title=titulo, markers=True)
+            else:
+                fig = px.area(df_grouped, x=col_x, y=col_y, title=titulo)
+
+            fig.update_layout(
+                xaxis_title=col_x,
+                yaxis_title=col_y,
+                height=420,
+            )
+
+            st.plotly_chart(fig, use_container_width=True)
+            st.caption("LAS GRAFICAS NO SE GUARDARN EN EL CHAT. Usa el ícono de la cámara en la esquina del gráfico para descargarlo como PNG.")
+
             with st.expander("Ver tabla de datos agrupados"):
-                st.dataframe(df_grouped)
+                st.dataframe(df_grouped, use_container_width=True)
 
         except Exception as e:
             st.error(f"Error al generar gráfica: {e}")
-            st.info("Asegúrate de que las columnas seleccionadas sean compatibles.")

@@ -274,9 +274,11 @@ def mostrar_dashboard() -> None:
             if chat_data and chat_data["file_name"]:
                 st.caption(f"Contexto activo: {chat_data['file_name']} — sube un nuevo archivo para reemplazarlo.")
 
+    if st.session_state.df is not None:
+        st.link_button("Ver Gráficas", "#generador-de-graficas")
+
     with st.container():
         chat()
 
     if st.session_state.df is not None:
-        with st.sidebar:
-            generar_grafica(st.session_state.df)
+        generar_grafica(st.session_state.df)
