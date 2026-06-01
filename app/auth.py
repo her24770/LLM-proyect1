@@ -126,6 +126,18 @@ def init_auth() -> None:
         except sqlite3.OperationalError:
             pass
 
+        # Migración: columnas de empresa en users
+        try:
+            cursor.execute("ALTER TABLE users ADD COLUMN company_name TEXT DEFAULT ''")
+            conn.commit()
+        except sqlite3.OperationalError:
+            pass
+        try:
+            cursor.execute("ALTER TABLE users ADD COLUMN company_context TEXT DEFAULT ''")
+            conn.commit()
+        except sqlite3.OperationalError:
+            pass
+
     except sqlite3.Error as e:
         st.error(f"Error al inicializar la base de datos: {e}")
         raise
@@ -179,14 +191,22 @@ def check_credentials(username: str, password: str) -> tuple[bool, dict | None]:
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
         cursor.execute(
-            "SELECT username, password_hash, full_name, email, is_active FROM users WHERE username = ?",
+            "SELECT username, password_hash, full_name, email, is_active, "
+            "COALESCE(company_name, '') as company_name, COALESCE(company_context, '') as company_context "
+            "FROM users WHERE username = ?",
             (username,),
         )
         row = cursor.fetchone()
         if row:
-            db_username, db_pwd_hash, db_full_name, db_email, is_active = row
+            db_username, db_pwd_hash, db_full_name, db_email, is_active, company_name, company_context = row
             if is_active and bcrypt.checkpw(password.encode("utf-8"), db_pwd_hash.encode("utf-8")):
-                return True, {"username": db_username, "full_name": db_full_name, "email": db_email}
+                return True, {
+                    "username": db_username,
+                    "full_name": db_full_name,
+                    "email": db_email,
+                    "company_name": company_name,
+                    "company_context": company_context,
+                }
         return False, None
     except sqlite3.Error:
         return False, None
@@ -240,6 +260,8 @@ def _render_login_form() -> None:
                         st.session_state["username"] = user_info["username"]
                         st.session_state["full_name"] = user_info["full_name"]
                         st.session_state["email"] = user_info["email"]
+                        st.session_state["company_name"] = user_info["company_name"]
+                        st.session_state["company_context"] = user_info["company_context"]
                         st.session_state["last_activity"] = datetime.now().isoformat()
                         st.session_state["failed_attempts"] = 0
                         st.query_params.clear()
@@ -283,6 +305,8 @@ def _render_register_form() -> None:
                         st.session_state["username"] = username.strip()
                         st.session_state["full_name"] = full_name.strip()
                         st.session_state["email"] = email.strip()
+                        st.session_state["company_name"] = ""
+                        st.session_state["company_context"] = ""
                         st.session_state["last_activity"] = datetime.now().isoformat()
                         st.session_state["failed_attempts"] = 0
                         st.query_params.clear()
@@ -312,6 +336,40 @@ def login() -> None:
     _render_login_form()
 
 
+def _render_onboarding_form() -> None:
+    st.markdown(_LOGIN_STYLES, unsafe_allow_html=True)
+    _, col, _ = st.columns([1, 2, 1])
+    with col:
+        st.markdown('<div class="auth-title">Cuéntanos sobre tu empresa</div>', unsafe_allow_html=True)
+        st.markdown(
+            '<div class="auth-subtitle">Esto ayuda a la IA a personalizar sus análisis para tu negocio</div>',
+            unsafe_allow_html=True,
+        )
+
+        with st.form("onboarding_form", clear_on_submit=False):
+            company_name = st.text_input("Nombre de la empresa", placeholder="Ej: Distribuidora López")
+            company_context = st.text_area(
+                "¿A qué se dedica?",
+                placeholder="Ej: Somos una distribuidora de productos de limpieza con ventas B2B en el norte del país.",
+                height=120,
+            )
+            submit = st.form_submit_button("Continuar", use_container_width=True)
+
+            if submit:
+                if not company_name.strip():
+                    st.error("El nombre de la empresa es requerido.")
+                elif not company_context.strip():
+                    st.error("La descripción de la empresa es requerida.")
+                else:
+                    username = st.session_state.get("username", "")
+                    if save_company_info(username, company_name, company_context):
+                        st.session_state["company_name"] = company_name.strip()
+                        st.session_state["company_context"] = company_context.strip()
+                        st.rerun()
+                    else:
+                        st.error("Error al guardar. Intenta de nuevo.")
+
+
 def logout() -> None:
     for key in ["authenticated", "username", "full_name", "email", "last_activity", "failed_attempts"]:
         st.session_state.pop(key, None)
@@ -328,18 +386,83 @@ def protect_page() -> bool:
         login()
         return False
 
+    if not st.session_state.get("company_name"):
+        _render_onboarding_form()
+        return False
+
     _mostrar_sidebar_usuario()
     return True
 
 
 def _mostrar_sidebar_usuario() -> None:
+    full_name = st.session_state.get("full_name", "")
+    username = st.session_state.get("username", "")
+    company = st.session_state.get("company_name", "")
+    initial = full_name[0].upper() if full_name else "?"
+
     with st.sidebar:
         st.markdown("---")
-        st.markdown(f"**{st.session_state.get('full_name', '')}**")
-        st.caption(f"@{st.session_state.get('username', '')}")
+        st.markdown(
+            f"""
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+                <div style="
+                    width:36px;height:36px;border-radius:50%;
+                    background:#62d6c8;color:#141820;
+                    display:flex;align-items:center;justify-content:center;
+                    font-weight:800;font-size:16px;flex-shrink:0
+                ">{initial}</div>
+                <div>
+                    <div style="font-weight:700;color:#fff;font-size:14px">{full_name}</div>
+                    <div style="color:#8A8D9F;font-size:12px">@{username}</div>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        if company:
+            st.caption(f"🏢 {company}")
+        st.markdown("<div style='margin-top:8px'></div>", unsafe_allow_html=True)
         if st.button("Cerrar sesión", use_container_width=True):
             logout()
             st.rerun()
+
+
+def get_company_info(username: str) -> dict:
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT COALESCE(company_name, ''), COALESCE(company_context, '') FROM users WHERE username = ?",
+            (username,),
+        )
+        row = cursor.fetchone()
+        if row:
+            return {"company_name": row[0], "company_context": row[1]}
+        return {"company_name": "", "company_context": ""}
+    except sqlite3.Error:
+        return {"company_name": "", "company_context": ""}
+    finally:
+        if conn:
+            conn.close()
+
+
+def save_company_info(username: str, company_name: str, company_context: str) -> bool:
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute(
+            "UPDATE users SET company_name = ?, company_context = ? WHERE username = ?",
+            (company_name.strip(), company_context.strip(), username),
+        )
+        conn.commit()
+        return True
+    except sqlite3.Error:
+        return False
+    finally:
+        if conn:
+            conn.close()
 
 
 def get_current_user() -> dict | None:

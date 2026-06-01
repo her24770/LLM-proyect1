@@ -37,10 +37,21 @@ _SYSTEM_MAESTRO_VACIO = (
 )
 
 
+def _company_prefix() -> str:
+    name = st.session_state.get("company_name", "")
+    ctx = st.session_state.get("company_context", "")
+    if name:
+        return f"Empresa del usuario: {name}. {ctx}\n\n"
+    return ""
+
+
 def _system_message(data_context: str = "") -> dict:
+    prefix = _company_prefix()
     if data_context:
-        return {"role": "system", "content": _SYSTEM_CON_DATOS.format(contexto=context_to_prompt(data_context))}
-    return {"role": "system", "content": _SYSTEM_BASE}
+        content = prefix + _SYSTEM_CON_DATOS.format(contexto=context_to_prompt(data_context))
+    else:
+        content = prefix + _SYSTEM_BASE
+    return {"role": "system", "content": content}
 
 
 def _system_message_maestro(user_id: int) -> dict:
@@ -151,11 +162,11 @@ def _mostrar_sidebar_chats() -> None:
                             _cargar_chat(item["id"])
                         st.rerun()
                 with col_rename:
-                    if st.button("r", key=f"ren_{item['id']}", use_container_width=True, help="Renombrar"):
+                    if st.button("✏", key=f"ren_{item['id']}", use_container_width=True, help="Renombrar"):
                         st.session_state.renaming_chat_id = item["id"]
                         st.rerun()
                 with col_del:
-                    if st.button("x", key=f"del_{item['id']}", use_container_width=True, help="Eliminar"):
+                    if st.button("✕", key=f"del_{item['id']}", use_container_width=True, help="Eliminar"):
                         eliminar_chat(item["id"])
                         if active_id == item["id"]:
                             for k in ("active_chat_id", "messages", "data_context", "df", "is_master"):
